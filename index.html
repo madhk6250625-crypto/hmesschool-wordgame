@@ -1,0 +1,848 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🏫 新民國小注音闖關大冒險 Pro</title>
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts: Fredoka & Noto Sans TC -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;700&family=Noto+Sans+TC:wght@500;700;900&display=swap" rel="stylesheet">
+    
+    <!-- Canvas Confetti Library -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+    <style>
+        body {
+            font-family: 'Fredoka', 'Noto Sans TC', sans-serif;
+            background: linear-gradient(135deg, #fffbeb 0%, #fef9c3 50%, #fef08a 100%);
+            touch-action: manipulation;
+            user-select: none;
+        }
+
+        /* 3D 卡通按鈕效果 */
+        .btn-3d {
+            transition: all 0.1s ease;
+            box-shadow: 0 4px 0 rgba(0, 0, 0, 0.12);
+        }
+        .btn-3d:active {
+            transform: translateY(3px);
+            box-shadow: 0 1px 0 rgba(0, 0, 0, 0.12);
+        }
+
+        /* 鍵盤色彩分類 */
+        .key-shengmu { background-color: #fff0f5; border-color: #fbcfe8; color: #be185d; }
+        .key-shengmu:hover { background-color: #fce7f3; }
+
+        .key-jiemu { background-color: #fefce8; border-color: #fef08a; color: #a16207; }
+        .key-jiemu:hover { background-color: #fef9c3; }
+
+        .key-yunmu { background-color: #f0fdf4; border-color: #bbf7d0; color: #15803d; }
+        .key-yunmu:hover { background-color: #dcfce7; }
+
+        .key-tone { background-color: #faf5ff; border-color: #e9d5ff; color: #7e22ce; }
+        .key-tone:hover { background-color: #f3e8ff; }
+
+        .key-space { background-color: #f8fafc; border-color: #e2e8f0; color: #475569; }
+        .key-space:hover { background-color: #f1f5f9; }
+
+        /* 目標提示發光動畫 */
+        .key-active-target {
+            animation: target-pulse 1s cubic-bezier(0.4, 0, 0.6, 1) infinite !important;
+            border-color: #ec4899 !important;
+            border-width: 3px !important;
+            background-color: #ffffff !important;
+            z-index: 10;
+        }
+
+        @keyframes target-pulse {
+            0%, 100% {
+                box-shadow: 0 0 0 0 rgba(236, 72, 153, 0.7), 0 0 15px rgba(236, 72, 153, 0.5);
+                transform: scale(1.08);
+            }
+            50% {
+                box-shadow: 0 0 0 8px rgba(236, 72, 153, 0.15), 0 0 22px rgba(236, 72, 153, 0.8);
+                transform: scale(1.14);
+            }
+        }
+
+        /* 答錯震動 */
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-8px); }
+            75% { transform: translateX(8px); }
+        }
+        .animate-shake { animation: shake 0.3s ease-in-out; }
+
+        /* 答對彈跳 */
+        @keyframes pop {
+            0% { transform: scale(0.9); }
+            50% { transform: scale(1.15) rotate(-3deg); }
+            100% { transform: scale(1); }
+        }
+        .animate-pop { animation: pop 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+
+        /* 泡泡背景動畫 */
+        @keyframes float-up-wide {
+            0% { transform: translateY(20px) scale(0.5); opacity: 0; }
+            40% { opacity: 0.6; }
+            100% { transform: translateY(-80px) scale(1.5); opacity: 0; }
+        }
+        .bubble-anim-1 { animation: float-up-wide 3s ease-in-out infinite; }
+        .bubble-anim-2 { animation: float-up-wide 4s ease-in-out infinite 0.8s; }
+        .bubble-anim-3 { animation: float-up-wide 3.5s ease-in-out infinite 1.5s; }
+        .bubble-anim-4 { animation: float-up-wide 4.5s ease-in-out infinite 0.4s; }
+    </style>
+</head>
+<body class="min-h-screen text-slate-800 flex flex-col justify-between p-2 md:p-4 selection:bg-pink-200">
+
+    <!-- 頂部標題與數據列 -->
+    <header class="max-w-6xl mx-auto w-full bg-white/90 backdrop-blur-md rounded-3xl p-3 md:p-4 shadow-sm border border-amber-200 flex flex-wrap items-center justify-between gap-3 mb-2">
+        <div class="flex items-center gap-3">
+            <div class="w-12 h-12 md:w-14 md:h-14 bg-gradient-to-tr from-pink-400 to-amber-400 rounded-2xl flex items-center justify-center text-2xl md:text-3xl shadow-md cursor-pointer btn-3d" id="school-avatar">
+                🏫
+            </div>
+            <div>
+                <h1 class="text-xl md:text-2xl font-black text-slate-800 tracking-wide flex items-center gap-2">
+                    新民國小 <span class="text-xs bg-amber-100 text-amber-600 px-2.5 py-0.5 rounded-full font-bold">注音闖關大冒險</span>
+                </h1>
+                <p id="current-chapter-title" class="text-xs md:text-sm text-slate-500 font-semibold">
+                    第一大關：注音精靈基礎篇
+                </p>
+            </div>
+        </div>
+
+        <button id="toggle-sound-btn" class="flex items-center gap-1.5 text-xs font-bold bg-amber-50 hover:bg-amber-100 text-amber-700 px-3.5 py-2 rounded-2xl border border-amber-200 transition-colors btn-3d">
+            <span id="sound-icon">🔊</span> <span id="sound-text">音效開啟</span>
+        </button>
+
+        <div class="flex items-center gap-3 bg-slate-50 p-2 md:px-4 md:py-2 rounded-2xl border border-slate-200 text-xs md:text-sm w-full sm:w-auto justify-around">
+            <div class="text-center">
+                <div class="text-slate-400 text-[10px] uppercase font-bold">正確率</div>
+                <div id="accuracy-display" class="font-black text-emerald-600 text-base md:text-lg">100%</div>
+            </div>
+            <div class="w-px h-7 bg-slate-200"></div>
+            <div class="text-center">
+                <div class="text-slate-400 text-[10px] uppercase font-bold">每分字數 (WPM)</div>
+                <div id="wpm-display" class="font-black text-blue-600 text-base md:text-lg">0</div>
+            </div>
+            <div class="w-px h-7 bg-slate-200"></div>
+            <div class="text-center">
+                <div class="text-slate-400 text-[10px] uppercase font-bold">大關進度</div>
+                <div id="world-progress-text" class="font-black text-amber-600 text-base md:text-lg">⭐ 0/4</div>
+            </div>
+        </div>
+    </header>
+
+    <!-- 冒險地圖與關卡選單 -->
+    <section class="max-w-6xl mx-auto w-full mb-2">
+        <div class="flex items-center gap-2 mb-2 text-xs md:text-sm font-bold text-slate-700 px-1">
+            <span>🗺️️ 冒險章節：</span>
+            <div class="flex gap-2 overflow-x-auto pb-1 w-full" id="world-tabs-container"></div>
+        </div>
+
+        <div class="flex items-center justify-between mb-1 px-1">
+            <span class="text-xs font-bold text-amber-800 flex items-center gap-1">
+                🚀 選擇關卡：
+            </span>
+            <span class="text-[11px] font-bold text-amber-600 bg-amber-50 px-2.5 py-0.5 rounded-full border border-amber-200">
+                🏆 通關標準：正確率 ≥ 80% | WPM ≥ 6
+            </span>
+        </div>
+
+        <div id="level-cards-container" class="grid grid-cols-2 sm:grid-cols-4 gap-2.5"></div>
+    </section>
+
+    <!-- 主要遊戲區域 -->
+    <main class="max-w-6xl mx-auto w-full flex-1 flex flex-col items-center justify-center my-1">
+        
+        <div id="game-card" class="w-full bg-white/95 rounded-3xl p-3 md:p-4 shadow-lg border-[6px] border-amber-300 text-center relative overflow-hidden transition-all">
+            
+            <!-- 泡泡特效背景 -->
+            <div class="absolute inset-0 pointer-events-none z-0">
+                <div class="absolute bottom-[10%] left-[5%] w-8 h-8 bg-pink-300/40 rounded-full bubble-anim-1"></div>
+                <div class="absolute bottom-[30%] left-[15%] w-12 h-12 bg-purple-300/30 rounded-full bubble-anim-2"></div>
+                <div class="absolute top-[40%] right-[10%] w-6 h-6 bg-amber-300/40 rounded-full bubble-anim-3"></div>
+                <div class="absolute bottom-[20%] right-[5%] w-10 h-10 bg-emerald-300/30 rounded-full bubble-anim-4"></div>
+                <div class="absolute top-[20%] left-[8%] w-5 h-5 bg-blue-300/40 rounded-full bubble-anim-1" style="animation-delay: 1.2s"></div>
+                <div class="absolute bottom-[5%] right-[20%] w-7 h-7 bg-rose-300/40 rounded-full bubble-anim-3" style="animation-delay: 0.5s"></div>
+            </div>
+
+            <!-- 角落標籤 -->
+            <div id="active-level-badge" class="absolute top-2 left-3 text-[10px] md:text-xs font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200 z-10">
+                第 1 關：聲母大集合
+            </div>
+
+            <div id="combo-badge" class="absolute top-2 right-3 opacity-0 transition-all duration-300 transform scale-75 bg-gradient-to-r from-amber-400 to-orange-500 text-white font-black text-[10px] md:text-xs px-2 py-0.5 rounded-full shadow-md flex items-center gap-1 z-10">
+                🔥 Combo <span id="combo-count">0</span>
+            </div>
+
+            <!-- 向上調升 0.5cm -->
+            <div class="mb-2 flex flex-col items-center z-10 relative" style="margin-top: -0.5cm;">
+                <div id="mascot-avatar" class="text-3xl md:text-4xl mb-1 transition-transform hover:scale-110 cursor-pointer">
+                    🏫
+                </div>
+                <div id="teacher-dialog" class="bg-amber-50 border border-amber-200 text-amber-700 px-3 py-1 rounded-full text-[10px] md:text-xs font-bold shadow-sm inline-block">
+                    歡迎來到新民國小注音大冒險按下相對應的注音吧
+                </div>
+            </div>
+
+            <!-- 文字呈現區 -->
+            <div class="my-2 flex flex-col items-center relative w-full z-10">
+                <div class="inline-flex items-center gap-1.5 bg-white border border-amber-200 text-amber-800 font-bold px-3 py-1 rounded-full text-[11px] md:text-xs shadow-sm mb-3 max-w-full overflow-x-auto">
+                    🎯 本關題目：<span id="target-phrase-display" class="font-black text-pink-600"></span>
+                </div>
+
+                <!-- 完整符號序列顯示區 -->
+                <div id="sequence-display" class="flex justify-center items-center flex-wrap gap-1.5 md:gap-2 mb-4 w-full min-h-[80px]">
+                    <!-- JS 動態生成所有注音方塊 -->
+                </div>
+                <span id="sparkle-effect" class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-4xl opacity-0 transition-all pointer-events-none z-20">✨</span>
+
+                <!-- 鍵盤按鍵提示 -->
+                <div id="key-hint" class="inline-flex items-center gap-2 bg-[#fff8e6] text-[#b47a00] border border-[#fde6a8] font-bold px-4 py-1.5 rounded-full text-[11px] md:text-xs shadow-sm transition-all">
+                    💡 提示：按 [ <span id="hint-char" class="text-pink-600 font-black text-sm"></span> ] 鍵 (對應鍵盤上的 <span id="hint-key-name" class="font-black text-amber-900"></span>)
+                </div>
+            </div>
+
+            <!-- 進度條 -->
+            <div class="w-full bg-slate-100 rounded-full h-2 mt-1 overflow-hidden p-0.5 border border-slate-200 z-10 relative">
+                <div id="progress-bar" class="bg-gradient-to-r from-pink-400 via-amber-400 to-orange-400 h-full rounded-full transition-all duration-300 w-0"></div>
+            </div>
+            
+            <!-- 底部進度狀態列 (包含左側紅框與右側字元進度) -->
+            <div class="flex justify-between items-center mt-3 z-10 relative w-full px-1">
+                <div id="question-progress-badge" class="bg-white border-2 border-red-600 text-slate-800 px-3 py-1 rounded-md text-[11px] md:text-xs font-bold shadow-sm">
+                    目標：累積 <span id="total-questions">0</span> 組注音 (目前：<span id="current-questions" class="text-pink-600">0</span>/<span id="total-questions-2">0</span>)
+                </div>
+                <div class="text-right text-[10px] md:text-xs font-bold text-slate-400" id="sublevel-progress-text">字元進度：0/8</div>
+            </div>
+        </div>
+    </main>
+
+    <!-- 虛擬注音鍵盤 -->
+    <footer class="max-w-6xl mx-auto w-full mt-1">
+        <div class="bg-white/90 backdrop-blur-md p-3 md:p-4 rounded-3xl shadow-md border border-amber-200 flex flex-col gap-2">
+            <div class="flex items-center justify-between px-2 pb-1 border-b border-slate-100 flex-wrap gap-2 text-[10px] md:text-xs font-bold text-slate-600">
+                <div class="flex items-center gap-1.5">
+                    <span>🎹 ㄅㄆㄇ彩色鍵盤：<span class="text-pink-500">粉紅光圈</span>為當前目標按鍵</span>
+                </div>
+                <div class="flex items-center gap-3">
+                    <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-pink-300"></span> 聲母</span>
+                    <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-amber-300"></span> 介母</span>
+                    <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-emerald-300"></span> 韻母</span>
+                    <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-purple-300"></span> 聲調</span>
+                </div>
+            </div>
+
+            <!-- 將下方鍵盤放大至 0.95 -->
+            <div class="w-full flex justify-center" style="transform: scale(0.95); transform-origin: top center; margin-bottom: -10px;">
+                <div id="virtual-keyboard" class="flex flex-col gap-1.5 pt-1 items-center w-full overflow-x-auto pb-2"></div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- 通關結算彈窗 -->
+    <div id="victory-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden opacity-0 transition-all duration-300">
+        <div class="bg-white rounded-3xl p-6 md:p-8 max-w-md w-full text-center shadow-2xl border-4 border-amber-300 transform scale-95 transition-all duration-300">
+            <div class="text-6xl mb-2">🏆</div>
+            <h2 class="text-2xl md:text-3xl font-black text-amber-500 mb-1">恭喜通關！</h2>
+            <p class="text-xs md:text-sm text-slate-500 font-semibold mb-4">新民國小闖關小助手為你的成果喝采！</p>
+
+            <div id="star-rating" class="text-3xl md:text-4xl mb-4 space-x-1">⭐ ⭐ ⭐</div>
+
+            <div class="bg-amber-50 border border-amber-200 rounded-2xl p-4 mb-5 grid grid-cols-2 gap-4 text-center">
+                <div>
+                    <div class="text-slate-400 text-xs font-bold">正確率</div>
+                    <div id="modal-accuracy" class="text-xl md:text-2xl font-black text-emerald-600">95%</div>
+                </div>
+                <div>
+                    <div class="text-slate-400 text-xs font-bold">每分字數 (WPM)</div>
+                    <div id="modal-wpm" class="text-xl md:text-2xl font-black text-blue-600">12</div>
+                </div>
+            </div>
+
+            <div id="modal-praise" class="text-sm font-bold text-rose-500 mb-6 bg-rose-50 p-3 rounded-xl border border-rose-100">
+                太棒了！你的打字速度與準確度雙雙達標！
+            </div>
+
+            <div class="flex gap-3">
+                <button id="retry-btn" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-extrabold py-3 rounded-2xl transition-all border border-slate-300 text-sm md:text-base btn-3d">
+                    🔄 再試一次
+                </button>
+                <button id="next-level-btn" class="flex-1 bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white font-extrabold py-3 rounded-2xl transition-all shadow-lg text-sm md:text-base btn-3d">
+                    🚀 下一關
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const KEY_MAP = {
+            '1': 'ㄅ', '2': 'ㄉ', '3': 'ˇ', '4': 'ˋ', '5': 'ㄓ', '6': 'ˊ', '7': '˙', '8': 'ㄚ', '9': 'ㄞ', '0': 'ㄢ', '-': 'ㄦ',
+            'q': 'ㄆ', 'w': 'ㄊ', 'e': 'ㄍ', 'r': 'ㄐ', 't': 'ㄔ', 'y': 'ㄗ', 'u': 'ㄧ', 'i': 'ㄛ', 'o': 'ㄟ', 'p': 'ㄣ',
+            'a': 'ㄇ', 's': 'ㄋ', 'd': 'ㄎ', 'f': 'ㄑ', 'g': 'ㄕ', 'h': 'ㄘ', 'j': 'ㄨ', 'k': 'ㄜ', 'l': 'ㄠ', ';': 'ㄤ',
+            'z': 'ㄈ', 'x': 'ㄌ', 'c': 'ㄏ', 'v': 'ㄒ', 'b': 'ㄖ', 'n': 'ㄙ', 'm': 'ㄩ', ',': 'ㄝ', '.': 'ㄡ', '/': 'ㄥ',
+            ' ': ' '
+        };
+
+        const CATEGORIES = {
+            'ㄅ':'shengmu','ㄆ':'shengmu','ㄇ':'shengmu','ㄈ':'shengmu','ㄉ':'shengmu','ㄊ':'shengmu','ㄋ':'shengmu','ㄌ':'shengmu','ㄍ':'shengmu','ㄎ':'shengmu','ㄏ':'shengmu','ㄐ':'shengmu','ㄑ':'shengmu','ㄒ':'shengmu','ㄓ':'shengmu','ㄔ':'shengmu','ㄕ':'shengmu','ㄖ':'shengmu','ㄗ':'shengmu','ㄘ':'shengmu','ㄙ':'shengmu',
+            'ㄧ':'jiemu','ㄨ':'jiemu','ㄩ':'jiemu',
+            'ㄚ':'yunmu','ㄛ':'yunmu','ㄜ':'yunmu','ㄝ':'yunmu','ㄞ':'yunmu','ㄟ':'yunmu','ㄠ':'yunmu','ㄡ':'yunmu','ㄢ':'yunmu','ㄣ':'yunmu','ㄤ':'yunmu','ㄥ':'yunmu','ㄦ':'yunmu',
+            '˙':'tone','ˊ':'tone','ˇ':'tone','ˋ':'tone'
+        };
+
+        const REVERSE_KEY_MAP = {};
+        for (let [k, v] of Object.entries(KEY_MAP)) REVERSE_KEY_MAP[v] = k;
+
+        const KEYBOARD_ROWS = [
+            ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-'],
+            ['q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p'],
+            ['a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l', ';'],
+            ['z', 'x', 'c', 'v', 'b', 'n', 'm', ',', '.', '/']
+        ];
+
+        const WORLDS = [
+            {
+                id: 1, title: '🟢 第一大關：注音精靈基礎篇',
+                subLevels: [
+                    { 
+                        id: 1, title: '第 1 關：聲母大集合 (上)', 
+                        questions: [
+                            { phrase: 'ㄅ', sequence: ['ㄅ'] }, { phrase: 'ㄆ', sequence: ['ㄆ'] },
+                            { phrase: 'ㄇ', sequence: ['ㄇ'] }, { phrase: 'ㄈ', sequence: ['ㄈ'] },
+                            { phrase: 'ㄉ', sequence: ['ㄉ'] }, { phrase: 'ㄊ', sequence: ['ㄊ'] },
+                            { phrase: 'ㄋ', sequence: ['ㄋ'] }, { phrase: 'ㄌ', sequence: ['ㄌ'] }
+                        ]
+                    },
+                    { 
+                        id: 2, title: '第 2 關：聲母大集合 (下)', 
+                        questions: [
+                            { phrase: 'ㄍ', sequence: ['ㄍ'] }, { phrase: 'ㄎ', sequence: ['ㄎ'] },
+                            { phrase: 'ㄏ', sequence: ['ㄏ'] }, { phrase: 'ㄐ', sequence: ['ㄐ'] },
+                            { phrase: 'ㄑ', sequence: ['ㄑ'] }, { phrase: 'ㄒ', sequence: ['ㄒ'] },
+                            { phrase: 'ㄓ', sequence: ['ㄓ'] }, { phrase: 'ㄔ', sequence: ['ㄔ'] },
+                            { phrase: 'ㄕ', sequence: ['ㄕ'] }, { phrase: 'ㄖ', sequence: ['ㄖ'] },
+                            { phrase: 'ㄗ', sequence: ['ㄗ'] }, { phrase: 'ㄘ', sequence: ['ㄘ'] },
+                            { phrase: 'ㄙ', sequence: ['ㄙ'] }
+                        ]
+                    },
+                    { 
+                        id: 3, title: '第 3 關：介母與韻母', 
+                        questions: [
+                            { phrase: 'ㄚ', sequence: ['ㄚ'] }, { phrase: 'ㄛ', sequence: ['ㄛ'] },
+                            { phrase: 'ㄜ', sequence: ['ㄜ'] }, { phrase: 'ㄝ', sequence: ['ㄝ'] },
+                            { phrase: 'ㄞ', sequence: ['ㄞ'] }, { phrase: 'ㄟ', sequence: ['ㄟ'] },
+                            { phrase: 'ㄠ', sequence: ['ㄠ'] }, { phrase: 'ㄡ', sequence: ['ㄡ'] },
+                            { phrase: 'ㄢ', sequence: ['ㄢ'] }, { phrase: 'ㄣ', sequence: ['ㄣ'] },
+                            { phrase: 'ㄤ', sequence: ['ㄤ'] }, { phrase: 'ㄥ', sequence: ['ㄥ'] },
+                            { phrase: 'ㄦ', sequence: ['ㄦ'] }, { phrase: 'ㄧ', sequence: ['ㄧ'] },
+                            { phrase: 'ㄨ', sequence: ['ㄨ'] }, { phrase: 'ㄩ', sequence: ['ㄩ'] }
+                        ]
+                    },
+                    { 
+                        id: 4, title: '第 4 關：四聲調符號練習', 
+                        questions: [
+                            { phrase: 'ㄅㄚ', sequence: ['ㄅ', 'ㄚ', ' '] },
+                            { phrase: 'ㄅㄚˊ', sequence: ['ㄅ', 'ㄚ', 'ˊ'] },
+                            { phrase: 'ㄅㄚˇ', sequence: ['ㄅ', 'ㄚ', 'ˇ'] },
+                            { phrase: 'ㄅㄚˋ', sequence: ['ㄅ', 'ㄚ', 'ˋ'] },
+                            { phrase: 'ㄅㄚ˙', sequence: ['ㄅ', 'ㄚ', '˙'] }
+                        ]
+                    }
+                ]
+            },
+            {
+                id: 2, title: '🟡 第二大關：生活詞語拼音篇',
+                subLevels: [
+                    { 
+                        id: 1, title: '第 1 關：可愛動物園', 
+                        questions: [
+                            { phrase: '貓咪', sequence: ['ㄇ', 'ㄠ', ' ', 'ㄇ', 'ㄧ', ' '] },
+                            { phrase: '猴子', sequence: ['ㄏ', 'ㄡ', 'ˊ', 'ㄗ', '˙'] },
+                            { phrase: '烏龜', sequence: ['ㄨ', ' ', 'ㄍ', 'ㄨ', 'ㄟ', ' '] },
+                            { phrase: '兔子', sequence: ['ㄊ', 'ㄨ', 'ˋ', 'ㄗ', '˙'] },
+                            { phrase: '大象', sequence: ['ㄉ', 'ㄚ', 'ˋ', 'ㄒ', 'ㄧ', 'ㄤ', 'ˋ'] },
+                            { phrase: '鱷魚', sequence: ['ㄜ', 'ˋ', 'ㄩ', 'ˊ'] }
+                        ]
+                    },
+                    { 
+                        id: 2, title: '第 2 關：美味點心鋪', 
+                        questions: [
+                            { phrase: '麵包', sequence: ['ㄇ', 'ㄧ', 'ㄢ', 'ˋ', 'ㄅ', 'ㄠ', ' '] },
+                            { phrase: '布丁', sequence: ['ㄅ', 'ㄨ', 'ˋ', 'ㄉ', 'ㄧ', 'ㄥ', ' '] },
+                            { phrase: '橘子', sequence: ['ㄐ', 'ㄩ', 'ˊ', 'ㄗ', '˙'] },
+                            { phrase: '香蕉', sequence: ['ㄒ', 'ㄧ', 'ㄠ', ' ', 'ㄐ', 'ㄧ', 'ㄠ', ' '] },
+                            { phrase: '奶茶', sequence: ['ㄋ', 'ㄞ', 'ˇ', 'ㄔ', 'ㄚ', 'ˊ'] },
+                            { phrase: '巧克力', sequence: ['ㄑ', 'ㄧ', 'ㄠ', 'ˇ', 'ㄎ', 'ㄜ', 'ˋ', 'ㄌ', 'ㄧ', 'ˋ'] }
+                        ]
+                    },
+                    { 
+                        id: 3, title: '第 3 關：校園與夥伴', 
+                        questions: [
+                            { phrase: '老師', sequence: ['ㄌ', 'ㄠ', 'ˇ', 'ㄕ', ' '] },
+                            { phrase: '學生', sequence: ['ㄒ', 'ㄩ', 'ㄝ', 'ˊ', 'ㄕ', 'ㄥ', ' '] },
+                            { phrase: '同學', sequence: ['ㄊ', 'ㄨ', 'ㄥ', 'ˊ', 'ㄒ', 'ㄩ', 'ㄝ', 'ˊ'] },
+                            { phrase: '老樹', sequence: ['ㄌ', 'ㄠ', 'ˇ', 'ㄕ', 'ㄨ', 'ˋ'] },
+                            { phrase: '爸爸', sequence: ['ㄅ', 'ㄚ', 'ˋ', 'ㄅ', 'ㄚ', '˙'] },
+                            { phrase: '媽媽', sequence: ['ㄇ', 'ㄚ', ' ', 'ㄇ', 'ㄚ', '˙'] }
+                        ]
+                    },
+                    { 
+                        id: 4, title: '第 4 關：大自然美景', 
+                        questions: [
+                            { phrase: '天空', sequence: ['ㄊ', 'ㄧ', 'ㄢ', ' ', 'ㄎ', 'ㄨ', 'ㄥ', ' '] },
+                            { phrase: '太陽', sequence: ['ㄊ', 'ㄞ', 'ˋ', 'ㄧ', 'ㄤ', 'ˊ'] },
+                            { phrase: '白雲', sequence: ['ㄅ', 'ㄞ', 'ˊ', 'ㄩ', 'ㄣ', 'ˊ'] },
+                            { phrase: '彩虹', sequence: ['ㄘ', 'ㄞ', 'ˇ', 'ㄏ', 'ㄨ', 'ㄥ', 'ˊ'] },
+                            { phrase: '閃電', sequence: ['ㄕ', 'ㄢ', 'ˇ', 'ㄉ', 'ㄧ', 'ㄢ', 'ˋ'] },
+                            { phrase: '月亮', sequence: ['ㄩ', 'ㄝ', 'ˋ', 'ㄌ', 'ㄧ', 'ㄤ', 'ˋ'] }
+                        ]
+                    }
+                ]
+            },
+            {
+                id: 3, title: '🟣 第三大關：童話短句魔法篇', 
+                subLevels: [
+                    {
+                        id: 1, title: '第 1 關：禮貌生活會話',
+                        questions: [
+                            { phrase: '早安星期一', sequence: ['ㄗ', 'ㄠ', 'ˇ', ' ', 'ㄢ', ' ', 'ㄒ', 'ㄧ', 'ㄥ', ' ', 'ㄑ', 'ㄧ', ' ', 'ㄧ'] },
+                            { phrase: '請多關照', sequence: ['ㄑ', 'ㄧ', 'ㄥ', 'ˇ', ' ', 'ㄉ', 'ㄨ', 'ㄛ', ' ', 'ㄍ', 'ㄨ', 'ㄢ', ' ', 'ㄓ', 'ㄠ', 'ˋ'] },
+                            { phrase: '謝謝幫忙', sequence: ['ㄒ', 'ㄧ', 'ㄝ', 'ˋ', ' ', 'ㄒ', 'ㄧ', 'ㄝ', '˙', ' ', 'ㄅ', 'ㄤ', ' ', 'ㄇ', 'ㄤ', 'ˊ'] },
+                            { phrase: '沒有關係，我自己來就好', sequence: ['ㄇ', 'ㄟ', 'ˊ', ' ', 'ㄧ', 'ㄡ', 'ˇ', ' ', 'ㄍ', 'ㄨ', 'ㄢ', ' ', 'ㄒ', 'ㄧ', '˙', ' ', 'ㄨ', 'ㄛ', 'ˇ', ' ', 'ㄗ', 'ˋ', ' ', 'ㄐ', 'ㄧ', 'ˇ', ' ', 'ㄌ', 'ㄞ', 'ˊ', ' ', 'ㄐ', 'ㄧ', 'ㄡ', 'ˋ', ' ', 'ㄏ', 'ㄠ', 'ˇ'] },
+                            { phrase: '有你的協助真好', sequence: ['ㄧ', 'ㄡ', 'ˇ', ' ', 'ㄋ', 'ㄧ', 'ˇ', ' ', 'ㄉ', 'ㄜ', '˙', ' ', 'ㄒ', 'ㄧ', 'ㄝ', 'ˊ', ' ', 'ㄓ', 'ㄨ', 'ˋ', ' ', 'ㄓ', 'ㄣ', ' ', 'ㄏ', 'ㄠ', 'ˇ'] }
+                        ]
+                    },
+                    {
+                        id: 2, title: '第 2 關：童話冒險故事',
+                        questions: [
+                            { phrase: '火箭飛上天', sequence: ['ㄏ', 'ㄨ', 'ㄛ', 'ˇ', ' ', 'ㄐ', 'ㄧ', 'ㄢ', 'ˋ', ' ', 'ㄈ', 'ㄟ', ' ', 'ㄕ', 'ㄤ', 'ˋ', ' ', 'ㄊ', 'ㄧ', 'ㄢ'] },
+                            { phrase: '醜小鴨變天鵝', sequence: ['ㄔ', 'ㄡ', 'ˇ', ' ', 'ㄒ', 'ㄧ', 'ㄠ', 'ˇ', ' ', 'ㄧ', 'ㄚ', ' ', 'ㄅ', 'ㄧ', 'ㄢ', 'ˋ', ' ', 'ㄊ', 'ㄧ', 'ㄢ', ' ', 'ㄜ', 'ˊ'] },
+                            { phrase: '小飛俠彼得潘', sequence: ['ㄒ', 'ㄧ', 'ㄠ', 'ˇ', ' ', 'ㄈ', 'ㄟ', ' ', 'ㄒ', 'ㄧ', 'ㄚ', 'ˊ', ' ', 'ㄅ', 'ㄧ', 'ˇ', ' ', 'ㄉ', 'ㄜ', 'ˊ', ' ', 'ㄆ', 'ㄢ'] },
+                            { phrase: '孫悟空大戰蜘蛛精', sequence: ['ㄙ', 'ㄨ', 'ㄣ', ' ', 'ㄨ', 'ˋ', ' ', 'ㄎ', 'ㄨ', 'ㄥ', ' ', 'ㄉ', 'ㄚ', 'ˋ', ' ', 'ㄓ', 'ㄢ', 'ˋ', ' ', 'ㄓ', ' ', 'ㄓ', 'ㄨ', ' ', 'ㄐ', 'ㄧ', 'ㄥ'] }
+                        ]
+                    },
+                    {
+                        id: 3, title: '第 3 關：大自然交響曲',
+                        questions: [
+                            { phrase: '春天到了', sequence: ['ㄔ', 'ㄨ', 'ㄣ', ' ', 'ㄊ', 'ㄧ', 'ㄢ', ' ', 'ㄉ', 'ㄠ', 'ˋ', ' ', 'ㄌ', 'ㄜ', '˙'] },
+                            { phrase: '夏天的風真熱', sequence: ['ㄒ', 'ㄧ', 'ㄚ', 'ˋ', ' ', 'ㄊ', 'ㄧ', 'ㄢ', ' ', 'ㄉ', 'ㄜ', '˙', ' ', 'ㄈ', 'ㄥ', ' ', 'ㄓ', 'ㄣ', ' ', 'ㄖ', 'ㄜ', 'ˋ'] },
+                            { phrase: '天上的星星真美麗', sequence: ['ㄊ', 'ㄧ', 'ㄢ', ' ', 'ㄕ', 'ㄤ', 'ˋ', ' ', 'ㄉ', 'ㄜ', '˙', ' ', 'ㄒ', 'ㄧ', 'ㄥ', ' ', 'ㄒ', 'ㄧ', 'ㄥ', '˙', ' ', 'ㄓ', 'ㄣ', ' ', 'ㄇ', 'ㄟ', 'ˇ', ' ', 'ㄌ', 'ㄧ', 'ˋ'] },
+                            { phrase: '聰明鳥叫的森林真有趣', sequence: ['ㄘ', 'ㄨ', 'ㄥ', ' ', 'ㄇ', 'ㄧ', 'ㄥ', 'ˊ', ' ', 'ㄋ', 'ㄧ', 'ㄠ', 'ˇ', ' ', 'ㄐ', 'ㄧ', 'ㄠ', 'ˋ', ' ', 'ㄉ', 'ㄜ', '˙', ' ', 'ㄙ', 'ㄣ', ' ', 'ㄌ', 'ㄧ', 'ㄣ', 'ˊ', ' ', 'ㄓ', 'ㄣ', ' ', 'ㄧ', 'ㄡ', 'ˇ', ' ', 'ㄑ', 'ㄩ', 'ˋ'] },
+                            { phrase: '流水聲嘩啦嘩啦真悅耳', sequence: ['ㄌ', 'ㄧ', 'ㄡ', 'ˊ', ' ', 'ㄕ', 'ㄨ', 'ㄟ', 'ˇ', ' ', 'ㄕ', 'ㄥ', ' ', 'ㄏ', 'ㄨ', 'ㄚ', ' ', 'ㄌ', 'ㄚ', ' ', 'ㄏ', 'ㄨ', 'ㄚ', ' ', 'ㄌ', 'ㄚ', ' ', 'ㄓ', 'ㄣ', ' ', 'ㄩ', 'ㄝ', 'ˋ', ' ', 'ㄦ', 'ˇ'] }
+                        ]
+                    },
+                    {
+                        id: 4, title: '第 4 關：終極注音冒險王',
+                        questions: [
+                            { phrase: '我們都是小勇士', sequence: ['ㄨ', 'ㄛ', 'ˇ', ' ', 'ㄇ', 'ㄣ', '˙', ' ', 'ㄉ', 'ㄡ', ' ', 'ㄕ', 'ˋ', ' ', 'ㄒ', 'ㄧ', 'ㄠ', 'ˇ', ' ', 'ㄩ', 'ㄥ', 'ˇ', ' ', 'ㄕ', 'ˋ'] },
+                            { phrase: '飛天激鬥戰士猛', sequence: ['ㄈ', 'ㄟ', ' ', 'ㄊ', 'ㄧ', 'ㄢ', ' ', 'ㄐ', 'ㄧ', ' ', 'ㄉ', 'ㄡ', 'ˋ', ' ', 'ㄓ', 'ㄢ', 'ˋ', ' ', 'ㄕ', 'ˋ', ' ', 'ㄇ', 'ㄥ', 'ˇ'] },
+                            { phrase: '線上創作真有趣', sequence: ['ㄒ', 'ㄧ', 'ㄢ', 'ˋ', ' ', 'ㄕ', 'ㄤ', 'ˋ', ' ', 'ㄔ', 'ㄨ', 'ㄤ', 'ˋ', ' ', 'ㄗ', 'ㄨ', 'ㄛ', 'ˋ', ' ', 'ㄓ', 'ㄣ', ' ', 'ㄧ', 'ㄡ', 'ˇ', ' ', 'ㄑ', 'ㄩ', 'ˋ'] },
+                            { phrase: '端午劃龍舟大競技', sequence: ['ㄉ', 'ㄨ', 'ㄢ', ' ', 'ㄨ', 'ˇ', ' ', 'ㄏ', 'ㄨ', 'ㄚ', 'ˊ', ' ', 'ㄌ', 'ㄨ', 'ㄥ', 'ˊ', ' ', 'ㄓ', 'ㄡ', ' ', 'ㄉ', 'ㄚ', 'ˋ', ' ', 'ㄐ', 'ㄧ', 'ㄥ', 'ˋ', ' ', 'ㄐ', 'ㄧ', 'ˋ'] },
+                            { phrase: '過年團圓闔家歡', sequence: ['ㄍ', 'ㄨ', 'ㄛ', 'ˋ', ' ', 'ㄋ', 'ㄧ', 'ㄢ', 'ˊ', ' ', 'ㄊ', 'ㄨ', 'ㄢ', 'ˊ', ' ', 'ㄩ', 'ㄢ', 'ˊ', ' ', 'ㄏ', 'ㄜ', 'ˊ', ' ', 'ㄐ', 'ㄧ', 'ㄚ', ' ', 'ㄏ', 'ㄨ', 'ㄢ'] }
+                        ]
+                    }
+                ]
+            }
+        ];
+
+        let currentWorldIdx = 0, currentSubLevelIdx = 0, currentQuestionIdx = 0;
+        let targetSequence = [], sequenceIndex = 0;
+        let totalTyped = 0, correctTyped = 0, combo = 0;
+        let startTime = null, isGameActive = false, soundEnabled = true;
+        const levelScores = {};
+
+        // 音效合成器
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        let audioCtx = null;
+
+        function playSound(type) {
+            if (!soundEnabled) return;
+            if (!audioCtx) audioCtx = new AudioContext();
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            const now = audioCtx.currentTime;
+
+            if (type === 'correct') {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(523.25, now);
+                osc.frequency.exponentialRampToValueAtTime(880, now + 0.1);
+                gain.gain.setValueAtTime(0.2, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+                osc.start(now); osc.stop(now + 0.1);
+            } else if (type === 'wrong') {
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(150, now);
+                osc.frequency.linearRampToValueAtTime(80, now + 0.18);
+                gain.gain.setValueAtTime(0.2, now);
+                gain.gain.linearRampToValueAtTime(0.01, now + 0.18);
+                osc.start(now); osc.stop(now + 0.18);
+            } else if (type === 'victory') {
+                [523.25, 659.25, 783.99, 1046.50].forEach((freq, idx) => {
+                    const o = audioCtx.createOscillator();
+                    const g = audioCtx.createGain();
+                    o.connect(g); g.connect(audioCtx.destination);
+                    o.type = 'triangle';
+                    o.frequency.setValueAtTime(freq, now + idx * 0.08);
+                    g.gain.setValueAtTime(0.2, now + idx * 0.08);
+                    g.gain.exponentialRampToValueAtTime(0.01, now + idx * 0.08 + 0.2);
+                    o.start(now + idx * 0.08); o.stop(now + idx * 0.08 + 0.2);
+                });
+            }
+        }
+
+        const worldTabsContainer = document.getElementById('world-tabs-container');
+        const levelCardsContainer = document.getElementById('level-cards-container');
+        const activeLevelBadge = document.getElementById('active-level-badge');
+        const targetPhraseDisplay = document.getElementById('target-phrase-display');
+        const comboBadgeEl = document.getElementById('combo-badge');
+        const comboCountEl = document.getElementById('combo-count');
+        const progressBarEl = document.getElementById('progress-bar');
+        const sublevelProgressTextEl = document.getElementById('sublevel-progress-text');
+        const accuracyDisplayEl = document.getElementById('accuracy-display');
+        const wpmDisplayEl = document.getElementById('wpm-display');
+        const worldProgressTextEl = document.getElementById('world-progress-text');
+        const virtualKeyboardEl = document.getElementById('virtual-keyboard');
+        const teacherDialogEl = document.getElementById('teacher-dialog');
+        const gameCardEl = document.getElementById('game-card');
+        const victoryModalEl = document.getElementById('victory-modal');
+
+        function renderWorldTabs() {
+            worldTabsContainer.innerHTML = '';
+            WORLDS.forEach((world, idx) => {
+                const btn = document.createElement('button');
+                const isActive = idx === currentWorldIdx;
+                btn.className = `px-3.5 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1 min-w-max border ${
+                    isActive ? 'bg-amber-400 text-white border-amber-500 shadow-sm scale-105' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+                }`;
+                btn.innerText = world.title;
+                btn.onclick = () => selectWorld(idx);
+                worldTabsContainer.appendChild(btn);
+            });
+        }
+
+        function renderLevelCards() {
+            levelCardsContainer.innerHTML = '';
+            WORLDS[currentWorldIdx].subLevels.forEach((sub, idx) => {
+                const score = levelScores[`w${currentWorldIdx}_s${idx}`];
+                const isActive = idx === currentSubLevelIdx;
+                const card = document.createElement('div');
+                card.className = `p-3 rounded-2xl border-2 transition-all cursor-pointer relative flex flex-col justify-between btn-3d ${
+                    isActive ? 'bg-amber-50 border-rose-400 ring-2 ring-rose-200' : 'bg-white border-slate-200 hover:border-amber-300'
+                }`;
+                card.innerHTML = `
+                    <div class="flex items-center justify-between mb-1">
+                        <span class="text-xs font-black text-slate-800">${sub.title}</span>
+                        ${isActive ? '<span class="text-[10px] font-bold text-rose-600 bg-rose-100 px-2 py-0.5 rounded-full">進行中</span>' : 
+                          score && score.passed ? '<span class="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full">已通關</span>' : 
+                          '<span class="text-[10px] font-bold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">未挑戰</span>'}
+                    </div>
+                    <div class="text-[11px] font-semibold text-slate-400">${score ? `最佳: ${score.accuracy}\% \vert{} WPM${score.wpm}` : '尚未挑戰'}</div>
+                `;
+                card.onclick = () => selectSubLevel(idx);
+                levelCardsContainer.appendChild(card);
+            });
+        }
+
+        function renderVirtualKeyboard() {
+            virtualKeyboardEl.innerHTML = '';
+            KEYBOARD_ROWS.forEach(row => {
+                const rowDiv = document.createElement('div');
+                rowDiv.className = 'flex justify-center gap-1.5 w-full max-w-4xl';
+                row.forEach(key => {
+                    const bopomofo = KEY_MAP[key];
+                    const category = CATEGORIES[bopomofo] || 'shengmu';
+                    const keyBtn = document.createElement('button');
+                    const safeKey = key === ';' ? 'semicolon' : key === ',' ? 'comma' : key === '.' ? 'dot' : key === '/' ? 'slash' : key;
+                    keyBtn.id = `vkey-${safeKey}`;
+                    keyBtn.className = `key-${category} border-2 rounded-2xl h-11 w-11 md:h-12 md:w-12 flex flex-col items-center justify-center font-bold transition-all btn-3d`;
+                    keyBtn.innerHTML = `<span class="text-base md:text-lg font-black">${bopomofo}</span><span class="text-[9px] font-semibold opacity-40 uppercase">${key}</span>`;
+                    keyBtn.onclick = () => handleInput(key);
+                    rowDiv.appendChild(keyBtn);
+                });
+                virtualKeyboardEl.appendChild(rowDiv);
+            });
+
+            const spaceRow = document.createElement('div');
+            spaceRow.className = 'flex justify-center w-full max-w-xl mt-1';
+            const spaceBtn = document.createElement('button');
+            spaceBtn.id = 'vkey-space';
+            spaceBtn.className = 'key-space border-2 rounded-2xl py-1.5 px-8 w-full max-w-md flex items-center justify-center font-bold text-xs md:text-sm btn-3d';
+            spaceBtn.innerHTML = `<span>␣ 空白鍵 (一聲 / 間隔)</span>`;
+            spaceBtn.onclick = () => handleInput(' ');
+            spaceRow.appendChild(spaceBtn);
+            virtualKeyboardEl.appendChild(spaceRow);
+        }
+
+        function selectWorld(worldIdx) {
+            currentWorldIdx = worldIdx;
+            currentSubLevelIdx = 0;
+            document.getElementById('current-chapter-title').innerText = WORLDS[currentWorldIdx].title;
+            renderWorldTabs();
+            startSubLevel();
+        }
+
+        function selectSubLevel(subIdx) {
+            currentSubLevelIdx = subIdx;
+            startSubLevel();
+        }
+
+        // 幫題目後方加上完整注音字串的功能函式
+        function updateTargetPhraseDisplay() {
+            const sub = WORLDS[currentWorldIdx].subLevels[currentSubLevelIdx];
+            const currentQ = sub.questions[currentQuestionIdx];
+            const bopoString = currentQ.sequence.join('').trim();
+            targetPhraseDisplay.innerText = `${currentQ.phrase} (${bopoString})`;
+        }
+
+        function startSubLevel() {
+            renderLevelCards();
+            const sub = WORLDS[currentWorldIdx].subLevels[currentSubLevelIdx];
+            activeLevelBadge.innerText = sub.title;
+            
+            if (sub.questions) {
+                currentQuestionIdx = 0;
+                targetSequence = [...sub.questions[currentQuestionIdx].sequence];
+                updateTargetPhraseDisplay();
+            }
+            
+            sequenceIndex = 0;
+            totalTyped = 0; correctTyped = 0; combo = 0; startTime = null; isGameActive = true;
+            updateStats();
+            updateTargetDisplay();
+        }
+
+        function updateTargetDisplay() {
+            if (sequenceIndex >= targetSequence.length) {
+                const sub = WORLDS[currentWorldIdx].subLevels[currentSubLevelIdx];
+                if (sub.questions && currentQuestionIdx < sub.questions.length - 1) {
+                    currentQuestionIdx++;
+                    targetSequence = [...sub.questions[currentQuestionIdx].sequence];
+                    sequenceIndex = 0;
+                    updateTargetPhraseDisplay();
+                    updateStats();
+                } else {
+                    checkStageClear();
+                    return;
+                }
+            }
+            
+            const currentTarget = targetSequence[sequenceIndex];
+            const mappedKey = REVERSE_KEY_MAP[currentTarget];
+            
+            const displayChar = currentTarget === ' ' ? '空白' : currentTarget;
+            const displayKey = mappedKey === ' ' ? '空白鍵' : mappedKey ? mappedKey.toUpperCase() : '?';
+            document.getElementById('hint-char').innerText = displayChar;
+            document.getElementById('hint-key-name').innerText = displayKey;
+
+            const sequenceContainer = document.getElementById('sequence-display');
+            sequenceContainer.innerHTML = '';
+            
+            // 完整顯示所有的注音方塊
+            targetSequence.forEach((char, i) => {
+                const box = document.createElement('div');
+                let baseClasses = "relative overflow-hidden flex flex-col items-center justify-center rounded-2xl border-4 font-black transition-all duration-300 shadow-sm ";
+                baseClasses += "w-11 h-14 md:w-14 md:h-[4.5rem] text-xl md:text-2xl z-10 ";
+
+                if (i < sequenceIndex) {
+                    // 已輸入完成
+                    baseClasses += "bg-slate-50 border-slate-200 text-slate-300 scale-95 opacity-80 ";
+                } else if (i === sequenceIndex) {
+                    // 當前目標 (發光彈跳)
+                    baseClasses += "bg-white border-pink-400 text-slate-800 ring-4 ring-pink-50 animate-pop scale-110 shadow-lg ";
+                } else {
+                    // 尚未輸入
+                    baseClasses += "bg-white border-amber-200 text-slate-700 ";
+                }
+
+                box.className = baseClasses;
+
+                if (char === ' ') {
+                    box.innerHTML = `<span class="relative z-10 text-[9px] md:text-[11px] text-purple-500 font-bold leading-tight text-center">␣<br>空白<br>/一聲</span>`;
+                } else {
+                    box.innerHTML = `<span class="relative z-10">${char}</span>`;
+                }
+                
+                sequenceContainer.appendChild(box);
+            });
+
+            highlightKeyboardTarget(mappedKey);
+        }
+
+        function highlightKeyboardTarget(activeKey) {
+            document.querySelectorAll('.key-active-target').forEach(el => el.classList.remove('key-active-target'));
+            if (activeKey) {
+                const safeKey = activeKey === ';' ? 'semicolon' : activeKey === ',' ? 'comma' : activeKey === '.' ? 'dot' : activeKey === '/' ? 'slash' : activeKey === ' ' ? 'space' : activeKey;
+                const targetKeyEl = document.getElementById(`vkey-${safeKey}`);
+                if (targetKeyEl) targetKeyEl.classList.add('key-active-target');
+            }
+        }
+
+        function handleInput(key) {
+            if (!isGameActive) return;
+            if (!startTime) startTime = new Date();
+
+            const inputChar = KEY_MAP[key.toLowerCase()];
+            const currentTarget = targetSequence[sequenceIndex];
+            totalTyped++;
+
+            if (inputChar && inputChar === currentTarget) {
+                correctTyped++;
+                combo++;
+                sequenceIndex++;
+                playSound('correct');
+                triggerSparkle();
+                updateStats();
+                updateTargetDisplay();
+            } else {
+                combo = 0;
+                playSound('wrong');
+                gameCardEl.classList.remove('animate-shake');
+                void gameCardEl.offsetWidth;
+                gameCardEl.classList.add('animate-shake');
+                teacherDialogEl.innerText = '看清楚注音發音與位置，再試一次喔！';
+                updateStats();
+            }
+        }
+
+        function triggerSparkle() {
+            const sparkle = document.getElementById('sparkle-effect');
+            sparkle.style.opacity = '1';
+            sparkle.style.transform = 'translate(-50%, -80%) scale(1.2)';
+            setTimeout(() => {
+                sparkle.style.opacity = '0';
+                sparkle.style.transform = 'translate(-50%, -50%) scale(1)';
+            }, 250);
+        }
+
+        function updateStats() {
+            // 字元進度更新
+            sublevelProgressTextEl.innerText = `字元進度：${sequenceIndex}/${targetSequence.length}`;
+            progressBarEl.style.width = `${Math.min(100, Math.round((sequenceIndex / targetSequence.length) * 100))}%`;
+
+            // 組數(題目)進度更新
+            const sub = WORLDS[currentWorldIdx].subLevels[currentSubLevelIdx];
+            const totalQ = sub.questions ? sub.questions.length : 0;
+            const currentQ = currentQuestionIdx;
+            
+            document.getElementById('total-questions').innerText = totalQ;
+            document.getElementById('total-questions-2').innerText = totalQ;
+            document.getElementById('current-questions').innerText = currentQ;
+
+            const accuracy = totalTyped === 0 ? 100 : Math.round((correctTyped / totalTyped) * 100);
+            accuracyDisplayEl.innerText = `${accuracy}%`;
+
+            let wpm = 0;
+            if (startTime) {
+                const elapsedMinutes = (new Date() - startTime) / 60000;
+                if (elapsedMinutes > 0) wpm = Math.round(correctTyped / elapsedMinutes);
+            }
+            wpmDisplayEl.innerText = wpm;
+
+            let passedInWorld = 0;
+            WORLDS[currentWorldIdx].subLevels.forEach((_, idx) => {
+                if (levelScores[`w${currentWorldIdx}_s${idx}`]?.passed) passedInWorld++;
+            });
+            worldProgressTextEl.innerText = `⭐ ${passedInWorld}/${WORLDS[currentWorldIdx].subLevels.length}`;
+
+            if (combo >= 2) {
+                comboCountEl.innerText = combo;
+                comboBadgeEl.classList.remove('opacity-0', 'scale-75');
+            } else {
+                comboBadgeEl.classList.add('opacity-0', 'scale-75');
+            }
+        }
+
+        function checkStageClear() {
+            isGameActive = false;
+            
+            // 通關時確保「目前的題目數」與「總題目數」相符
+            const sub = WORLDS[currentWorldIdx].subLevels[currentSubLevelIdx];
+            const totalQ = sub.questions ? sub.questions.length : 0;
+            document.getElementById('current-questions').innerText = totalQ;
+
+            const accuracy = totalTyped === 0 ? 100 : Math.round((correctTyped / totalTyped) * 100);
+            let wpm = 0;
+            if (startTime) wpm = Math.round(correctTyped / ((new Date() - startTime) / 60000));
+
+            document.getElementById('modal-accuracy').innerText = `${accuracy}%`;
+            document.getElementById('modal-wpm').innerText = wpm;
+
+            const passed = accuracy >= 80 && wpm >= 6;
+            const key = `w${currentWorldIdx}_s${currentSubLevelIdx}`;
+            if (!levelScores[key] || accuracy > levelScores[key].accuracy) {
+                levelScores[key] = { passed, accuracy, wpm };
+            }
+
+            renderLevelCards();
+
+            if (passed) {
+                playSound('victory');
+                if (typeof confetti === 'function') confetti({ particleCount: 90, spread: 85, origin: { y: 0.6 } });
+                document.getElementById('star-rating').innerText = accuracy >= 95 ? '⭐ ⭐ ⭐' : '⭐ ⭐';
+                document.getElementById('modal-praise').innerText = '🎉 恭喜你！成功達成正確率與 WPM 雙重通關挑戰！';
+            } else {
+                document.getElementById('star-rating').innerText = '⭐';
+                document.getElementById('modal-praise').innerText = '再接再厲！再試一次達成 正確率 ≥ 80% 和 WPM ≥ 6 吧！';
+            }
+
+            victoryModalEl.classList.remove('hidden');
+            setTimeout(() => {
+                victoryModalEl.classList.remove('opacity-0');
+                victoryModalEl.querySelector('div').classList.remove('scale-95');
+            }, 10);
+        }
+
+        function hideModal() {
+            victoryModalEl.classList.add('opacity-0');
+            victoryModalEl.querySelector('div').classList.add('scale-95');
+            setTimeout(() => victoryModalEl.classList.add('hidden'), 300);
+        }
+
+        window.addEventListener('keydown', (e) => {
+            if (e.ctrlKey || e.altKey || e.metaKey) return;
+            const key = e.key.toLowerCase();
+            if (KEY_MAP[key]) {
+                e.preventDefault();
+                handleInput(key);
+            }
+        });
+
+        document.getElementById('toggle-sound-btn').onclick = () => {
+            soundEnabled = !soundEnabled;
+            document.getElementById('sound-icon').innerText = soundEnabled ? '🔊' : '🔇';
+            document.getElementById('sound-text').innerText = soundEnabled ? '音效開啟' : '音效關閉';
+        };
+
+        document.getElementById('retry-btn').onclick = () => { hideModal(); startSubLevel(); };
+        document.getElementById('next-level-btn').onclick = () => {
+            hideModal();
+            const world = WORLDS[currentWorldIdx];
+            if (currentSubLevelIdx + 1 < world.subLevels.length) {
+                currentSubLevelIdx++;
+            } else {
+                currentWorldIdx = (currentWorldIdx + 1) % WORLDS.length;
+                currentSubLevelIdx = 0;
+            }
+            renderWorldTabs();
+            startSubLevel();
+        };
+
+        window.onload = function() {
+            renderWorldTabs();
+            renderVirtualKeyboard();
+            selectWorld(0);
+        };
+    </script>
+</body>
+</html>
